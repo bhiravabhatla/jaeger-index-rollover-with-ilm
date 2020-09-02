@@ -21,14 +21,13 @@ SHARDS = 5
 REPLICAS = 1
 
 def main():
-    if len(sys.argv) != 4:
-        print('USAGE: [INDEX_PREFIX=(default "")] [ARCHIVE=(default false)] ... {} ACTION http://HOSTNAME[:PORT] ILM_POLICY'.format(sys.argv[0]))
+    if len(sys.argv) != 3:
+        print('USAGE: [INDEX_PREFIX=(default "")] [ARCHIVE=(default false)] ... {} ACTION http://HOSTNAME[:PORT]'.format(sys.argv[0]))
         print('ACTION ... one of:')
         print('\tinit - creates indices and aliases')
         print('\trollover - rollover to new write index')
         print('\tlookback - removes old indices from read alias')
         print('HOSTNAME ... specifies which Elasticsearch hosts URL to search and delete indices from.')
-        print('ILM_POLICY ... specifies name of ILM policy to use while creating index templates.')
         print('INDEX_PREFIX ... specifies index prefix.')
         print('ARCHIVE ... handle archive indices (default false).')
         print('ES_USERNAME ... The username required by Elasticsearch.')
@@ -55,7 +54,7 @@ def main():
         prefix += '-'
 
     action = sys.argv[1]
-    ilm_policy = sys.argv[3]
+    ilm_policy = "jaeger-ILM-Policy"
     check_if_ilm_policy_exists(ilm_policy)
 
     if str2bool(os.getenv('ARCHIVE', 'false')):
@@ -65,11 +64,10 @@ def main():
     else:
         write_alias = prefix + 'jaeger-span-write'
         read_alias = prefix + 'jaeger-span-read'
-        perform_action(action, client, write_alias, read_alias, prefix+'jaeger-span', 'jaeger-span-with-ilm', ilm_policy)
+        perform_action(action, client, write_alias, read_alias, prefix+'jaeger-span', 'jaeger-span-with-ilm')
         write_alias = prefix + 'jaeger-service-write'
         read_alias = prefix + 'jaeger-service-read'
-        perform_action(action, client, write_alias, read_alias, prefix+'jaeger-service', 'jaeger-service-with-ilm', ilm_policy)
-
+        perform_action(action, client, write_alias, read_alias, prefix+'jaeger-service', 'jaeger-service-with-ilm')
 
 def check_if_ilm_policy_exists(ilm_policy):
     """"
@@ -81,9 +79,7 @@ def check_if_ilm_policy_exists(ilm_policy):
         print ("ILM policy '{}' doesn't exist in Elasticsearch. Please create it and rerun init".format(ilm_policy))
         sys.exit(1)
 
-
-
-def perform_action(action, client, write_alias, read_alias, index_to_rollover, template_name, ilm_policy):
+def perform_action(action, client, write_alias, read_alias, index_to_rollover, template_name):
     if action == 'init':
         shards = os.getenv('SHARDS', SHARDS)
         replicas = os.getenv('REPLICAS', REPLICAS)
@@ -92,7 +88,7 @@ def perform_action(action, client, write_alias, read_alias, index_to_rollover, t
             mapping = Path('./mappings/'+template_name+'-7.json').read_text()
         else:
             mapping = Path('./mappings/'+template_name+'.json').read_text()
-        create_index_template(fix_mapping(mapping, shards, replicas, ilm_policy), template_name)
+        create_index_template(fix_mapping(mapping, shards, replicas), template_name)
 
         index = index_to_rollover + '-000001'
         create_index(client, index)
@@ -194,10 +190,9 @@ def str2bool(v):
     return v.lower() in ('true', '1')
 
 
-def fix_mapping(mapping, shards, replicas, ilm_policy):
+def fix_mapping(mapping, shards, replicas):
     mapping = mapping.replace("${__NUMBER_OF_SHARDS__}", str(shards))
     mapping = mapping.replace("${__NUMBER_OF_REPLICAS__}", str(replicas))
-    mapping = mapping.replace("${__ILM_POLICY__}", str(ilm_policy))
     return mapping
 
 

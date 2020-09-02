@@ -10,7 +10,7 @@
     "index.mapping.nested_fields.limit": 50,
     "index.requests.cache.enable": true,
     "lifecycle": {
-      "name": "${__ILM_POLICY__}",
+      "name": "jaeger-ILM-Policy",
       "rollover_alias": "jaeger-service-write"
     }
   },
