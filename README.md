@@ -3,7 +3,6 @@ Use ILM to manage jaeger indices.
 
 #### credits:
  https://github.com/jaegertracing/jaeger/blob/master/plugin/storage/es/esRollover.py
- https://github.com/pavolloffay
  
  This repo is an extension on work done by Pavol Loffay for managing jaeger indices.
  
