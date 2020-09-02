@@ -54,8 +54,6 @@ def main():
         prefix += '-'
 
     action = sys.argv[1]
-    ilm_policy = "jaeger-ILM-Policy"
-    check_if_ilm_policy_exists(ilm_policy)
 
     if str2bool(os.getenv('ARCHIVE', 'false')):
         write_alias = prefix + ARCHIVE_INDEX + '-write'
@@ -69,15 +67,6 @@ def main():
         read_alias = prefix + 'jaeger-service-read'
         perform_action(action, client, write_alias, read_alias, prefix+'jaeger-service', 'jaeger-service-with-ilm')
 
-def check_if_ilm_policy_exists(ilm_policy):
-    """"
-    Checks whether ilm is created in Elasticsearch
-    """
-    s = get_request_session(os.getenv("ES_USERNAME"), os.getenv("ES_PASSWORD"), str2bool(os.getenv("ES_TLS", 'false')), os.getenv("ES_TLS_CA"), os.getenv("ES_TLS_CERT"), os.getenv("ES_TLS_KEY"), os.getenv("ES_TLS_SKIP_HOST_VERIFY", 'false'))
-    r = s.get(sys.argv[2] + '/_ilm/policy/' + ilm_policy)
-    if r.status_code != 200:
-        print ("ILM policy '{}' doesn't exist in Elasticsearch. Please create it and rerun init".format(ilm_policy))
-        sys.exit(1)
 
 def perform_action(action, client, write_alias, read_alias, index_to_rollover, template_name):
     if action == 'init':
