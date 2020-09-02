@@ -10,9 +10,13 @@ Use ILM to manage jaeger indices.
  
  ### Problem Statement
  By default, Jaeger is configured to create one index per day and this might lead to uneven resource distribution. For example, few indices might contain significantly more data compared to others.
+ 
  ### Existing Solution for this
+ 
   Jaeger can be configured to start using aliases instead of standalone indices to read and write from. Rollover of indices and cleanup of older indices can be achieved using esRollover and esCleaner scripts which use Elasticsearch rollover endpoint (explained in detail in this blog by Pavol Loffay.
- What are we trying to achieve
+  
+ ### What are we trying to achieve
+ 
  The catch with above approach is that we need to have a cronjob which runs esRollover and esCleaner scripts   regularly and performs rollover & cleanup based on the condition specified. 
  In this repo we try to use Elasticsearch ILM to perform rollover and cleanup actions automatically - instead of manually doing it by calling rollover API repeatedly. ILM performs the rollover in a clean and safer way.
  
