@@ -101,3 +101,9 @@ To publish, increment the version and
 ```
 make publish
 ```
+
+To run init locally
+
+```
+ES_HOST=<Elasticsearch IP> ILM_POLICY=<ILM_POLICY> make init
+```
