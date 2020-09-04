@@ -37,6 +37,7 @@ def main():
         print('ES_TLS_CERT ... Path to TLS certificate file.')
         print('ES_TLS_KEY ... Path to TLS key file.')
         print('ES_TLS_SKIP_HOST_VERIFY ... (insecure) Skip server\'s certificate chain and host name verification.')
+        print('USE_ILM ... Use ILM to manage jaeger span and service indices')
         print('ES_VERSION ... The major Elasticsearch version. If not specified, the value will be auto-detected from Elasticsearch.')
         print('init configuration:')
         print('\tSHARDS ...  the number of shards per index in Elasticsearch (default {}).'.format(SHARDS))
@@ -55,6 +56,13 @@ def main():
 
     action = sys.argv[1]
 
+    if str2bool(os.getenv('USE_ILM', 'false')):
+        span_template = 'jaeger-span-with-ilm'
+        service_template = 'jaeger-service-with-ilm'
+    else:
+        span_template = 'jaeger-span'
+        service_template = 'jaeger-service'
+
     if str2bool(os.getenv('ARCHIVE', 'false')):
         write_alias = prefix + ARCHIVE_INDEX + '-write'
         read_alias = prefix + ARCHIVE_INDEX + '-read'
@@ -62,10 +70,10 @@ def main():
     else:
         write_alias = prefix + 'jaeger-span-write'
         read_alias = prefix + 'jaeger-span-read'
-        perform_action(action, client, write_alias, read_alias, prefix+'jaeger-span', 'jaeger-span-with-ilm')
+        perform_action(action, client, write_alias, read_alias, prefix+'jaeger-span', span_template)
         write_alias = prefix + 'jaeger-service-write'
         read_alias = prefix + 'jaeger-service-read'
-        perform_action(action, client, write_alias, read_alias, prefix+'jaeger-service', 'jaeger-service-with-ilm')
+        perform_action(action, client, write_alias, read_alias, prefix+'jaeger-service', service_template)
 
 
 def perform_action(action, client, write_alias, read_alias, index_to_rollover, template_name):
@@ -77,7 +85,7 @@ def perform_action(action, client, write_alias, read_alias, index_to_rollover, t
             mapping = Path('./mappings/'+template_name+'-7.json').read_text()
         else:
             mapping = Path('./mappings/'+template_name+'.json').read_text()
-        create_index_template(fix_mapping(mapping, shards, replicas), template_name)
+        create_index_template(fix_mapping(mapping, shards, replicas, read_alias, write_alias), template_name)
 
         index = index_to_rollover + '-000001'
         create_index(client, index)
@@ -123,10 +131,9 @@ def create_aliases(client, alias_name, archive_index_name):
         print("Adding index {} to alias {}".format(index, alias_name))
     if re.search(r'write', alias_name):
         alias = curator.Alias(client=client, name=alias_name, extra_settings={'is_write_index': True})
-        alias.add(ilo)
     else:
         alias = curator.Alias(client=client, name=alias_name)
-        alias.add(ilo)
+    alias.add(ilo)
     alias.do_action()
 
 
@@ -179,9 +186,11 @@ def str2bool(v):
     return v.lower() in ('true', '1')
 
 
-def fix_mapping(mapping, shards, replicas):
+def fix_mapping(mapping, shards, replicas, read_alias, write_alias):
     mapping = mapping.replace("${__NUMBER_OF_SHARDS__}", str(shards))
     mapping = mapping.replace("${__NUMBER_OF_REPLICAS__}", str(replicas))
+    mapping = mapping.replace("${__INDEX_READ_ALIAS__}", str(read_alias))
+    mapping = mapping.replace("${__INDEX_WRITE_ALIAS__}", str(write_alias))
     return mapping
 
 

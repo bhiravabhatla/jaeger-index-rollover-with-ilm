@@ -2,7 +2,7 @@
   "index_patterns": "*jaeger-span-*",
   "order": 1,
   "aliases": {
-    "jaeger-span-read": {}
+    "${__INDEX_READ_ALIAS__}": {}
   },
   "settings": {
     "index.number_of_shards": ${__NUMBER_OF_SHARDS__},
@@ -10,8 +10,8 @@
     "index.mapping.nested_fields.limit": 50,
     "index.requests.cache.enable": true,
     "lifecycle": {
-      "name": "jaeger-ILM-Policy",
-      "rollover_alias": "jaeger-span-write"
+      "name": "jaeger",
+      "rollover_alias": "${__INDEX_WRITE_ALIAS__}"
     }
   },
   "mappings": {
